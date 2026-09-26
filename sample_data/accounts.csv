@@ -1,0 +1,4 @@
+account_id,customer_id,account_type,opened_date,balance,status,branch
+ACC-92831,CUST-1000,SAVINGS,2022-04-12,482000.0,ACTIVE,Mumbai Main
+ACC-1002,CUST-1001,CURRENT,2023-01-15,1250000.0,ACTIVE,Ahmedabad SG Highway
+ACC-1003,CUST-1002,SAVINGS,2021-09-01,85000.0,ACTIVE,Delhi CP

@@ -16,6 +16,7 @@ from app.api.challenge import router as challenge_router
 from app.api.decisions import router as decisions_router
 from app.api.reviews import router as reviews_router
 from app.api.demo import router as demo_router
+from app.api.chat import router as chat_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -56,6 +57,7 @@ app.include_router(challenge_router)
 app.include_router(decisions_router)
 app.include_router(reviews_router)
 app.include_router(demo_router)
+app.include_router(chat_router)
 
 @app.get("/health", tags=["Health"])
 async def health_check():

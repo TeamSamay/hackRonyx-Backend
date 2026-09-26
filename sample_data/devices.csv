@@ -1,0 +1,3 @@
+device_id,customer_id,device_type,registered_city,last_seen_city,last_seen_time,device_status
+DEV-1001,CUST-1000,iPhone 14,Mumbai,Delhi,2026-09-26 10:43,ACTIVE
+DEV-1002,CUST-1001,Samsung S23,Ahmedabad,Ahmedabad,2026-09-25 20:00,ACTIVE

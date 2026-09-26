@@ -1,0 +1,4 @@
+transaction_id,account_id,timestamp,amount,currency,merchant,merchant_category,location,payment_method,device_id,ip_address,status
+TX-92831,ACC-92831,2026-09-26 10:42,85000.0,INR,ABC Electronics,Electronics,Mumbai,UPI,DEV-1001,103.21.244.2,SUCCESS
+TX-1002,ACC-92831,2026-09-25 18:30,1200.0,INR,Starbucks Coffee,Dining,Mumbai,DEBIT_CARD,DEV-1001,103.21.244.2,SUCCESS
+TX-1003,ACC-92831,2026-09-24 14:15,4500.0,INR,Supermarket Retail,Groceries,Mumbai,UPI,DEV-1001,103.21.244.2,SUCCESS
