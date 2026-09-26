@@ -24,8 +24,9 @@ class Settings(BaseSettings):
         "*"
     ]
     
-    # MongoDB Database Configuration
-    MONGODB_URL: str = Field(default="mongodb://localhost:27017")
+    # MongoDB Database Configuration (Supports MONGODB_URI and MONGODB_URL)
+    MONGODB_URL: str = Field(default=os.getenv("MONGODB_URI", "mongodb://localhost:27017"))
+    MONGODB_URI: str = Field(default="")
     MONGODB_DB_NAME: str = Field(default="verdict_db")
     
     # SQL Database (Alternative/Fallback)
@@ -50,6 +51,10 @@ class Settings(BaseSettings):
         extra = "allow"
 
 settings = Settings()
+
+# Resolve MongoDB connection string precedence
+if settings.MONGODB_URI and not settings.MONGODB_URL.startswith("mongodb+srv"):
+    settings.MONGODB_URL = settings.MONGODB_URI
 
 # Ensure storage directories exist
 os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
