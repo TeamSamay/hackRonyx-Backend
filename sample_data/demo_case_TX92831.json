@@ -1,0 +1,170 @@
+{
+  "case_id": "CASE-TX92831",
+  "trust_status": "CONFLICTING",
+  "fraud_model": {
+    "risk_score": 0.91,
+    "model": "xgboost",
+    "anomaly_score": 0.88,
+    "feature_contributions": {
+      "transaction_amount_velocity": 0.35,
+      "unusual_device_telemetry": 0.28,
+      "geo_ip_distance_anomaly": 0.22,
+      "prior_account_baseline": 0.06
+    }
+  },
+  "evidence_quality": "HIGH",
+  "completeness": 1.0,
+  "evidence": [
+    {
+      "evidence_id": "E-001",
+      "case_id": "CASE-TX92831",
+      "source": {
+        "type": "DATABASE",
+        "system": "BANK_TRANSACTION_DB",
+        "name": "transactions:TX-92831"
+      },
+      "claim": {
+        "subject": "TX-92831",
+        "predicate": "transaction_location",
+        "value": "Mumbai"
+      },
+      "timestamp": "2026-09-26T10:42:00",
+      "quality": {
+        "reliability": "HIGH",
+        "freshness": "CURRENT",
+        "completeness": 1.0,
+        "overall_quality": "HIGH"
+      },
+      "traceability": {
+        "table": "transactions",
+        "record_id": "TX-92831"
+      }
+    },
+    {
+      "evidence_id": "E-002",
+      "case_id": "CASE-TX92831",
+      "source": {
+        "type": "DEVICE_SIGNAL",
+        "system": "MOBILE_TELEMETRY_DB",
+        "name": "telemetry_stream:DEV-92831"
+      },
+      "claim": {
+        "subject": "TX-92831",
+        "predicate": "device_location",
+        "value": "Delhi"
+      },
+      "timestamp": "2026-09-26T10:41:52",
+      "quality": {
+        "reliability": "HIGH",
+        "freshness": "CURRENT",
+        "completeness": 1.0,
+        "overall_quality": "HIGH"
+      },
+      "traceability": {
+        "ip": "103.21.244.2",
+        "cell_tower_id": "DEL-4102"
+      }
+    },
+    {
+      "evidence_id": "E-003",
+      "case_id": "CASE-TX92831",
+      "source": {
+        "type": "IMAGE",
+        "system": "UPLOADED_KYC_DOCUMENT",
+        "name": "kyc_registration_acae.jpg"
+      },
+      "claim": {
+        "subject": "TX-92831",
+        "predicate": "registered_city",
+        "value": "Mumbai"
+      },
+      "timestamp": "2026-09-26T10:00:00",
+      "quality": {
+        "reliability": "HIGH",
+        "freshness": "RECENT",
+        "completeness": 0.95,
+        "ocr_confidence": 0.96,
+        "overall_quality": "HIGH"
+      },
+      "traceability": {
+        "file": "kyc_registration_acae.jpg",
+        "page": 1
+      }
+    },
+    {
+      "evidence_id": "E-004",
+      "case_id": "CASE-TX92831",
+      "source": {
+        "type": "CSV",
+        "system": "HISTORICAL_LEDGER_FEED",
+        "name": "account_history_acc992.csv"
+      },
+      "claim": {
+        "subject": "ACC992",
+        "predicate": "avg_monthly_transfer_velocity",
+        "value": "₹8,400"
+      },
+      "timestamp": "2026-09-26T00:00:00",
+      "quality": {
+        "reliability": "HIGH",
+        "freshness": "CURRENT",
+        "completeness": 1.0,
+        "overall_quality": "HIGH"
+      },
+      "traceability": {
+        "file": "account_history_acc992.csv",
+        "line_number": 42
+      }
+    }
+  ],
+  "claims": [
+    {
+      "evidence_id": "E-001",
+      "subject": "TX-92831",
+      "predicate": "transaction_location",
+      "value": "Mumbai"
+    },
+    {
+      "evidence_id": "E-002",
+      "subject": "TX-92831",
+      "predicate": "device_location",
+      "value": "Delhi"
+    }
+  ],
+  "contradictions": [
+    {
+      "contradiction_id": "CONTRA-LOC-01",
+      "evidence_ids": ["E-001", "E-002"],
+      "subject": "TX-92831",
+      "predicate": "geo_spatial_presence",
+      "conflicting_values": ["Mumbai", "Delhi"],
+      "severity": "CRITICAL",
+      "description": "Physical & Telemetry Location Clash: Transaction occurred in 'Mumbai' while device session was active in 'Delhi'. Simultaneous physical presence is impossible within the elapsed window.",
+      "resolution_suggestion": "Dispatch SMS OTP or require interactive biometric confirmation."
+    }
+  ],
+  "missing_information": [
+    {
+      "item": "device_ownership_verification",
+      "reason": "Device location and ownership cannot be conclusively linked to the registered account holder.",
+      "priority": "HIGH",
+      "suggested_source": "TELECOM_CARRIER_API / MOBILE_AUTHENTICATOR"
+    }
+  ],
+  "reasoning": "Case CASE-TX92831 exhibits an elevated statistical ML risk score of 0.91 coupled with a critical geo-spatial contradiction between physical bank terminal in Mumbai and cellular telemetry in Delhi. In accordance with VERDICT's deterministic safety protocols, automated clearance is prohibited and human review is mandated.",
+  "challenge": {
+    "performed": true,
+    "hypothesis": "Transaction is fraudulent due to location/device anomaly.",
+    "counter_evidence_found": false,
+    "counter_evidence_ids": [],
+    "challenge_summary": "Adversarial counter-evidence scan completed. No mitigating device updates, travel notices, or secondary authorizations were found to offset the location anomaly.",
+    "original_risk_state": "HIGH_RISK",
+    "adjusted_risk_state": "HIGH_RISK_CONFIRMED"
+  },
+  "recommendation": "HUMAN_REVIEW",
+  "audit": {
+    "timestamp": "2026-09-26T14:36:34Z",
+    "engine_version": "2.0.0",
+    "gate": "DETERMINISTIC_DECISION_GATE"
+  }
+}

@@ -1,0 +1,68 @@
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.core.config import settings
+from app.core.logging import logger
+from app.db.session import init_db
+
+# Import all API routers
+from app.api.cases import router as cases_router
+from app.api.evidence import router as evidence_router
+from app.api.connectors import router as connectors_router
+from app.api.analysis import router as analysis_router
+from app.api.challenge import router as challenge_router
+from app.api.decisions import router as decisions_router
+from app.api.reviews import router as reviews_router
+from app.api.demo import router as demo_router
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("Starting VERDICT AI Backend...")
+    await init_db()
+    yield
+    logger.info("Shutting down VERDICT AI Backend...")
+
+app = FastAPI(
+    title=settings.APP_NAME,
+    version=settings.APP_VERSION,
+    description="VERDICT AI - Enterprise Multi-Source Evidence Ingestion, ML Anomaly, RAG, Contradiction Engine & Deterministic Decision Gate",
+    lifespan=lifespan
+)
+
+# CORS configuration for Developer 1 React UI
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Register Routers
+app.include_router(cases_router)
+app.include_router(evidence_router)
+app.include_router(connectors_router)
+app.include_router(analysis_router)
+app.include_router(challenge_router)
+app.include_router(decisions_router)
+app.include_router(reviews_router)
+app.include_router(demo_router)
+
+@app.get("/health", tags=["Health"])
+async def health_check():
+    return {
+        "status": "HEALTHY",
+        "service": settings.APP_NAME,
+        "version": settings.APP_VERSION,
+        "decision_gate": "OPERATIONAL",
+        "deterministic_rules": 6
+    }
+
+@app.get("/", tags=["Root"])
+async def root():
+    return {
+        "message": "VERDICT AI Backend is active.",
+        "docs_url": "/docs",
+        "demo_seed_endpoint": "/api/demo/seed-tx92831"
+    }

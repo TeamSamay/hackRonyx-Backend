@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: verdict-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: verdict_user
+      POSTGRES_PASSWORD: verdict_pass
+      POSTGRES_DB: verdict_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build: .
+    container_name: verdict-backend
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://verdict_user:verdict_pass@db:5432/verdict_db
+      - DATABASE_SYNC_URL=postgresql://verdict_user:verdict_pass@db:5432/verdict_db
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - APP_ENV=production
+    depends_on:
+      - db
+    volumes:
+      - ./storage:/app/storage
+
+  edge-gateway:
+    build: .
+    container_name: verdict-edge-gateway
+    command: python -m edge_gateway.main
+    ports:
+      - "8001:8001"
+    environment:
+      - VERDICT_BACKEND_URL=http://backend:8000
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
