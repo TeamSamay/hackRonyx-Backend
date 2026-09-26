@@ -1,24 +1,17 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
-
-from app.db.session import get_db
-from app.db.models import DecisionModel
+from fastapi import APIRouter
 from app.schemas.decision import DecisionPacket
 from app.api.analysis import run_case_analysis
+from app.db.repository import repo
 
 router = APIRouter(prefix="/api/cases", tags=["Decisions"])
 
 @router.get("/{case_id}/decision", response_model=DecisionPacket)
-async def get_latest_decision(case_id: str, db: AsyncSession = Depends(get_db)):
+async def get_latest_decision(case_id: str):
     """
-    Returns the canonical DecisionPacket for a case (React Frontend Contract).
+    Returns the canonical DecisionPacket for a case from MongoDB.
     """
-    result = await db.execute(
-        select(DecisionModel).where(DecisionModel.case_id == case_id).order_by(DecisionModel.id.desc())
-    )
-    decision = result.scalars().first()
-    if not decision:
-        return await run_case_analysis(case_id=case_id, db=db)
+    decision_raw = await repo.get_latest_decision(case_id)
+    if not decision_raw:
+        return await run_case_analysis(case_id=case_id)
 
-    return DecisionPacket(**decision.packet_json)
+    return DecisionPacket(**decision_raw)

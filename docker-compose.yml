@@ -1,18 +1,14 @@
 version: '3.8'
 
 services:
-  db:
-    image: pgvector/pgvector:pg16
-    container_name: verdict-postgres
+  mongodb:
+    image: mongo:latest
+    container_name: verdict-mongodb
     restart: always
-    environment:
-      POSTGRES_USER: verdict_user
-      POSTGRES_PASSWORD: verdict_pass
-      POSTGRES_DB: verdict_db
     ports:
-      - "5432:5432"
+      - "27017:27017"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mongo_data:/data/db
 
   backend:
     build: .
@@ -21,12 +17,13 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql+asyncpg://verdict_user:verdict_pass@db:5432/verdict_db
-      - DATABASE_SYNC_URL=postgresql://verdict_user:verdict_pass@db:5432/verdict_db
+      - MONGODB_URL=mongodb://mongodb:27017
+      - MONGODB_DB_NAME=verdict_db
       - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - GROQ_MODEL=llama3-70b-8192
       - APP_ENV=production
     depends_on:
-      - db
+      - mongodb
     volumes:
       - ./storage:/app/storage
 
@@ -42,4 +39,4 @@ services:
       - backend
 
 volumes:
-  postgres_data:
+  mongo_data:

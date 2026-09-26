@@ -24,7 +24,11 @@ class Settings(BaseSettings):
         "*"
     ]
     
-    # Database
+    # MongoDB Database Configuration
+    MONGODB_URL: str = Field(default="mongodb://localhost:27017")
+    MONGODB_DB_NAME: str = Field(default="verdict_db")
+    
+    # SQL Database (Alternative/Fallback)
     DATABASE_URL: str = Field(default="sqlite+aiosqlite:///./verdict.db")
     DATABASE_SYNC_URL: str = Field(default="sqlite:///./verdict.db")
     

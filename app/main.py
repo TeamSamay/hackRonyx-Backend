@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.logging import logger
 from app.db.session import init_db
+from app.db.mongodb import connect_to_mongo, close_mongo_connection
 
 # Import all API routers
 from app.api.cases import router as cases_router
@@ -19,14 +20,21 @@ from app.api.demo import router as demo_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting VERDICT AI Backend...")
-    await init_db()
+    # Initialize MongoDB connection & indexes
+    await connect_to_mongo()
+    # Initialize SQL fallback tables
+    try:
+        await init_db()
+    except Exception as e:
+        logger.warning(f"SQL init bypassed (using MongoDB): {e}")
     yield
     logger.info("Shutting down VERDICT AI Backend...")
+    await close_mongo_connection()
 
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
-    description="VERDICT AI - Enterprise Multi-Source Evidence Ingestion, ML Anomaly, RAG, Contradiction Engine & Deterministic Decision Gate",
+    description="VERDICT AI - Enterprise Multi-Source Evidence Ingestion, MongoDB, ML Anomaly, RAG, Contradiction Engine & Deterministic Decision Gate",
     lifespan=lifespan
 )
 
@@ -55,14 +63,17 @@ async def health_check():
         "status": "HEALTHY",
         "service": settings.APP_NAME,
         "version": settings.APP_VERSION,
+        "database": "MongoDB",
+        "mongodb_url": settings.MONGODB_URL,
         "decision_gate": "OPERATIONAL",
-        "deterministic_rules": 6
+        "llm_provider": "Groq",
+        "llm_model": settings.GROQ_MODEL
     }
 
 @app.get("/", tags=["Root"])
 async def root():
     return {
-        "message": "VERDICT AI Backend is active.",
+        "message": "VERDICT AI Backend is active with MongoDB & Groq.",
         "docs_url": "/docs",
         "demo_seed_endpoint": "/api/demo/seed-tx92831"
     }

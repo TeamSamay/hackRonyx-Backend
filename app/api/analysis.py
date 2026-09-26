@@ -1,11 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
+from fastapi import APIRouter, HTTPException
+from typing import List
 
-from app.db.session import get_db
-from app.db.models import CaseModel, EvidenceModel, DecisionModel
-from app.schemas.analysis import AnalysisRequest, AnalysisResponse, MLAnalysisResult
-from app.schemas.evidence import EvidenceObject, SourceMetadata, ClaimPayload, QualityMetrics, TraceabilityInfo, SourceType, ReliabilityLevel, FreshnessLevel
+from app.schemas.analysis import AnalysisRequest
+from app.schemas.evidence import EvidenceObject
 from app.schemas.decision import DecisionPacket
 from app.services.rag.retriever import retriever
 from app.services.ml.fraud_model import fraud_model
@@ -14,70 +11,44 @@ from app.services.ml.explainability import shap_explainer
 from app.services.contradiction.contradiction_engine import contradiction_engine
 from app.services.challenge.challenge_engine import challenge_engine
 from app.services.decision.decision_gate import decision_gate
+from app.db.repository import repo
 from app.core.logging import logger
 
 router = APIRouter(prefix="/api/cases", tags=["Analysis"])
 
-async def _load_case_evidence(case_id: str, db: AsyncSession) -> list[EvidenceObject]:
-    result = await db.execute(select(EvidenceModel).where(EvidenceModel.case_id == case_id))
-    rows = result.scalars().all()
-    evidence_objects = []
-    for r in rows:
-        ev = EvidenceObject(
-            evidence_id=r.evidence_id,
-            case_id=r.case_id,
-            source=SourceMetadata(
-                type=SourceType(r.source_type) if r.source_type in SourceType.__members__ else SourceType.DATABASE,
-                system=r.source_system,
-                name=r.source_reference
-            ),
-            claim=ClaimPayload(
-                subject=r.claim_subject,
-                predicate=r.claim_predicate,
-                value=r.claim_value,
-                raw_statement=r.raw_statement
-            ),
-            timestamp=r.timestamp.isoformat() if r.timestamp else "",
-            quality=QualityMetrics(
-                reliability=ReliabilityLevel(r.reliability) if r.reliability in ReliabilityLevel.__members__ else ReliabilityLevel.HIGH,
-                freshness=FreshnessLevel(r.freshness) if r.freshness in FreshnessLevel.__members__ else FreshnessLevel.CURRENT,
-                completeness=r.completeness or 1.0,
-                ocr_confidence=r.ocr_confidence,
-                overall_quality=r.overall_quality or "HIGH"
-            ),
-            traceability=TraceabilityInfo(**(r.traceability or {})),
-            raw_payload=r.raw_payload or {},
-            created_at=r.created_at.isoformat() if r.created_at else ""
-        )
-        evidence_objects.append(ev)
-    return evidence_objects
+async def _load_case_evidence(case_id: str) -> List[EvidenceObject]:
+    raw_list = await repo.get_case_evidence(case_id)
+    return [EvidenceObject(**r) for r in raw_list]
 
 @router.post("/{case_id}/analyze", response_model=DecisionPacket)
-async def run_case_analysis(
-    case_id: str,
-    req: AnalysisRequest = None,
-    db: AsyncSession = Depends(get_db)
-):
+async def run_case_analysis(case_id: str, req: AnalysisRequest = None):
     """
-    Full VERDICT Pipeline Execution:
+    Full VERDICT Pipeline Execution against MongoDB:
     1. Load all case evidence
     2. RAG Retrieval of decision-critical items
     3. ML Risk & Anomaly scoring + SHAP
     4. Deterministic Contradiction Detection
     5. Challenge Engine counter-evidence evaluation
     6. DETERMINISTIC DECISION GATE evaluation
-    7. Saves & returns the canonical DecisionPacket
+    7. Saves to MongoDB & returns the canonical DecisionPacket
     """
     logger.info(f"Triggered full analysis for case {case_id}")
     
     # 1. Load case
-    case_res = await db.execute(select(CaseModel).where(CaseModel.case_id == case_id))
-    case = case_res.scalars().first()
+    case = await repo.get_case(case_id)
     if not case:
-        raise HTTPException(status_code=404, detail=f"Case {case_id} not found.")
+        # Auto-create case if not present
+        case = {
+            "case_id": case_id,
+            "title": f"Investigation {case_id}",
+            "entity_type": "TRANSACTION",
+            "entity_id": case_id,
+            "status": "OPEN"
+        }
+        await repo.create_case(case)
 
     # 2. Load evidence
-    evidence_list = await _load_case_evidence(case_id, db)
+    evidence_list = await _load_case_evidence(case_id)
     
     # 3. RAG retrieval
     relevant_evidence = retriever.retrieve_decision_evidence(
@@ -117,36 +88,18 @@ async def run_case_analysis(
         challenge_result=challenge_result
     )
 
-    # 8. Persist Decision Record & update Case Trust Status
-    case.trust_status = decision_packet.trust_status.value
-    
-    decision_record = DecisionModel(
-        case_id=case_id,
-        trust_status=decision_packet.trust_status.value,
-        fraud_risk_score=decision_packet.fraud_model.risk_score,
-        anomaly_score=decision_packet.fraud_model.anomaly_score or 0.0,
-        evidence_quality=decision_packet.evidence_quality,
-        completeness=decision_packet.completeness,
-        recommendation=decision_packet.recommendation.value,
-        reasoning=decision_packet.reasoning,
-        packet_json=decision_packet.dict()
-    )
-    db.add(decision_record)
-    await db.commit()
+    # 8. Persist Decision Record in MongoDB
+    await repo.save_decision(decision_packet.dict())
 
     return decision_packet
 
 @router.get("/{case_id}/analysis", response_model=DecisionPacket)
-async def get_case_analysis(case_id: str, db: AsyncSession = Depends(get_db)):
+async def get_case_analysis(case_id: str):
     """
-    Retrieves the latest analysis and decision packet for a case.
+    Retrieves the latest analysis and decision packet for a case from MongoDB.
     """
-    result = await db.execute(
-        select(DecisionModel).where(DecisionModel.case_id == case_id).order_by(DecisionModel.id.desc())
-    )
-    dec = result.scalars().first()
-    if not dec:
-        # If not analyzed yet, run it automatically
-        return await run_case_analysis(case_id=case_id, db=db)
+    dec_raw = await repo.get_latest_decision(case_id)
+    if not dec_raw:
+        return await run_case_analysis(case_id=case_id)
 
-    return DecisionPacket(**dec.packet_json)
+    return DecisionPacket(**dec_raw)

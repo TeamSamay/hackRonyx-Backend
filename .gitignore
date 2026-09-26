@@ -25,6 +25,10 @@ wheels/
 venv/
 ENV/
 
+# Secrets & Environment
+.env
+.env.local
+
 # Database
 *.db
 *.sqlite
