@@ -1,5 +1,9 @@
 # ⚖️ VERDICT AI — Complete Backend (Developer 2 Owner)
 
+
+
+
+
 > **"Files, databases, APIs, and external sources are only different ways of collecting evidence. Once inside VERDICT, everything becomes a traceable Evidence Object."**
 
 VERDICT AI is an enterprise-grade truth verification, fraud analysis, and deterministic decisioning platform that replaces manual file uploads with multi-source ingestion connectors, localized Edge Gateways, RAG retrieval, ML risk models (XGBoost + Isolation Forest + SHAP), deterministic contradiction detection, counter-evidence challenge engine, and an un-bypassable **Deterministic Decision Gate**.
