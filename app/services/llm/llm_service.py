@@ -13,8 +13,8 @@ class LLMService:
 
     def __init__(self):
         self.api_key = settings.GROQ_API_KEY or os.getenv("GROQ_API_KEY", "")
-        self.model = settings.GROQ_MODEL
-        self.fallback_models = ["llama-3.3-70b-versatile", "llama-3.1-70b-versatile", "llama-3.1-8b-instant", "llama3-70b-8192", "mixtral-8x7b-32768"]
+        self.model = os.getenv("GROQ_MODEL") or "openai/gpt-oss-120b"
+        self.fallback_models = ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.6-27b", "qwen/qwen3.8-27b"]
         self._client = None
         if self.api_key:
             try:

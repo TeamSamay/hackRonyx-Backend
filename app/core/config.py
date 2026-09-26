@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     
     # LLM & AI
     GROQ_API_KEY: str = Field(default="")
-    GROQ_MODEL: str = "llama3-70b-8192"
+    GROQ_MODEL: str = "openai/gpt-oss-120b"
     EMBEDDING_MODEL_NAME: str = "all-MiniLM-L6-v2"
     
     # Storage
