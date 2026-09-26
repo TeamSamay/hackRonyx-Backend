@@ -86,6 +86,14 @@ class Repository:
             )
         return doc_data
 
+    @staticmethod
+    async def get_case_documents(case_id: str) -> List[Dict[str, Any]]:
+        db = mongo_db.db
+        if db is not None:
+            cursor = db.documents.find({"case_id": case_id}, {"_id": 0}).sort("created_at", -1)
+            return await cursor.to_list(length=100)
+        return []
+
     # ----------------------------------------------------
     # DECISIONS
     # ----------------------------------------------------

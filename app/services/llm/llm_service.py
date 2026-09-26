@@ -14,6 +14,7 @@ class LLMService:
     def __init__(self):
         self.api_key = settings.GROQ_API_KEY or os.getenv("GROQ_API_KEY", "")
         self.model = settings.GROQ_MODEL
+        self.fallback_models = ["llama-3.3-70b-versatile", "llama-3.1-70b-versatile", "llama-3.1-8b-instant", "llama3-70b-8192", "mixtral-8x7b-32768"]
         self._client = None
         if self.api_key:
             try:
@@ -22,6 +23,24 @@ class LLMService:
                 logger.info(f"Groq LLM client initialized with model {self.model}")
             except Exception as e:
                 logger.warning(f"Could not initialize Groq client: {e}")
+
+    def _call_groq(self, messages: List[Dict[str, str]], temperature: float = 0.2, max_tokens: int = 800) -> Optional[str]:
+        if not self._client:
+            return None
+        models_to_try = [self.model] + [m for m in self.fallback_models if m != self.model]
+        for mod in models_to_try:
+            try:
+                res = self._client.chat.completions.create(
+                    model=mod,
+                    messages=messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens
+                )
+                if res.choices and res.choices[0].message.content:
+                    return res.choices[0].message.content.strip()
+            except Exception as e:
+                logger.warning(f"Groq model {mod} call failed: {e}")
+        return None
 
     def generate_claims(self, text_content: str, source_name: str) -> List[Dict[str, Any]]:
         """

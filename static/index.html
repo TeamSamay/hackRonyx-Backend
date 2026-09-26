@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VERDICT AI - Enterprise Decision & Verification Engine</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <!-- Navigation Header -->
+  <header class="navbar">
+    <a href="#" class="brand-logo">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+      </svg>
+      VERDICT AI
+      <span class="brand-badge">v2.0 PRO</span>
+    </a>
+    <div class="nav-status">
+      <span class="status-dot"></span>
+      <span id="backend-status">Connected to Atlas</span>
+    </div>
+  </header>
+
+  <!-- Main Dashboard Container -->
+  <div class="container">
+    <div class="dashboard-header">
+      <div class="dashboard-title">
+        <h1>Autonomous Evidence & Decision Dossier</h1>
+        <p>Real-time cross-verification, XGBoost ML scoring & spatio-temporal conflict detection</p>
+      </div>
+      <div class="btn-group">
+        <button id="btn-seed" class="btn btn-secondary">⚡ Seed Demo Cases</button>
+        <button id="btn-refresh" class="btn btn-primary">🔄 Refresh Pipeline</button>
+      </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Active Cases</div>
+        <div class="stat-value" id="stat-cases">4</div>
+        <div class="stat-desc">Multi-domain audit records</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Verified Sources</div>
+        <div class="stat-value" id="stat-evidence" style="color: var(--accent-cyan)">11</div>
+        <div class="stat-desc">OCR, DB, API & Telemetry feeds</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Contradictions Detected</div>
+        <div class="stat-value" id="stat-contra" style="color: var(--accent-rose)">1</div>
+        <div class="stat-desc">Mumbai vs Delhi spatial clash</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Decision Trust Gate</div>
+        <div class="stat-value" id="stat-gate" style="color: var(--accent-emerald)">100%</div>
+        <div class="stat-desc">Deterministic rule governance</div>
+      </div>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="main-grid">
+      <!-- Case Explorer -->
+      <div class="glass-panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            📁 Evidence Ingestion & Cases
+          </div>
+          <span style="font-size: 0.85rem; color: var(--text-muted)">Live Stream</span>
+        </div>
+        <div class="case-list" id="case-list-container">
+          <!-- Dynamically populated cases -->
+          <div class="case-item active" data-id="CASE-TX92831">
+            <div class="case-header">
+              <span class="case-id">CASE-TX92831</span>
+              <span class="badge badge-conflicting">CONFLICTING</span>
+            </div>
+            <div class="case-title">High-Value Wire Transfer Dispute (₹85,000)</div>
+            <div class="case-desc">Location conflict: Branch initiated in Mumbai while authenticated cellular session reported Delhi.</div>
+          </div>
+
+          <div class="case-item" data-id="CASE-CLAIM782">
+            <div class="case-header">
+              <span class="case-id">CASE-CLAIM782</span>
+              <span class="badge badge-sufficient">SUFFICIENT</span>
+            </div>
+            <div class="case-title">Vehicle Total Loss Claim - ₹3,20,000</div>
+            <div class="case-desc">Accident FIR, authorized garage estimate and GPS telemetry fully verified.</div>
+          </div>
+
+          <div class="case-item" data-id="CASE-LOAN409">
+            <div class="case-header">
+              <span class="case-id">CASE-LOAN409</span>
+              <span class="badge badge-incomplete">INCOMPLETE</span>
+            </div>
+            <div class="case-title">SME Commercial Credit Line - ABC Infotech</div>
+            <div class="case-desc">Annual turnover ₹1.84 Cr verified. Missing Q4 GST returns and director guarantee.</div>
+          </div>
+
+          <div class="case-item" data-id="CASE-KYC501">
+            <div class="case-header">
+              <span class="case-id">CASE-KYC501</span>
+              <span class="badge badge-low-quality">LOW_QUALITY</span>
+            </div>
+            <div class="case-title">Cross-Border Remittance KYC Audit</div>
+            <div class="case-desc">Substandard passport scan (42% OCR confidence) and outdated 2021 utility bill.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Inspector Panel -->
+      <div class="glass-panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            ⚖️ Gate Verification
+          </div>
+        </div>
+        <div id="inspector-content">
+          <div style="margin-bottom: 1rem;">
+            <div class="stat-label">Selected Case</div>
+            <div style="font-size: 1.1rem; font-weight: 700; color: var(--accent-cyan);" id="insp-id">CASE-TX92831</div>
+          </div>
+          <div style="margin-bottom: 1rem;">
+            <div class="stat-label">ML Fraud Risk</div>
+            <div style="font-size: 1.5rem; font-weight: 800; color: var(--accent-rose);" id="insp-risk">91.0%</div>
+            <div class="stat-desc">XGBoost & Isolation Forest Ensemble</div>
+          </div>
+          <div style="margin-bottom: 1rem;">
+            <div class="stat-label">Deterministic Verdict</div>
+            <div class="badge badge-conflicting" style="margin-top: 0.25rem;" id="insp-verdict">HUMAN_REVIEW_MANDATED</div>
+          </div>
+          <div class="stat-label" style="margin-bottom: 0.5rem;">Audit Trail</div>
+          <div class="code-box" id="insp-audit">
+            [GATE] Rule 4: Spatio-Temporal Discrepancy Flagged
+            [LOCATION] Mumbai != Delhi (Δt: 8s)
+            [ACTION] Automated Clearance Blocked
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
