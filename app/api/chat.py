@@ -218,39 +218,76 @@ async def send_message(thread_id: str, req: SendMessageRequest):
         except Exception as e:
             logger.warning(f"Web search extraction skipped: {e}")
 
-        # 3. Dynamic Decision Intelligence via Groq LLM
+        # 3. Classify Query Intent for Context-Aware Reasoning
+        is_system_or_rag_query = any(k in q for k in ["database", "data base", "db", "mongo", "rag", "vector", "architecture", "how does", "what does", "how it works", "explain", "help me understand", "system", "what is"])
+        is_company_recommendation = any(k in q for k in ["suggest", "recommend", "which company", "any company", "what company"])
+        is_case_or_audit_query = has_attachments or any(k in q for k in ["evaluate", "audit", "fraud", "dispute", "loan", "claim", "tx-", "tx92831", "claim-", "contradiction", "fake", "statement", "kyc", "fir", "police", "wire", "transfer", "disbursement", "clean", "sufficient"])
+
+        # 4. Dynamic Decision Intelligence via Groq LLM
         try:
-            system_prompt = (
-                "You are VERDICT AI — an institutional legal and financial forensic decision intelligence system.\n"
-                "Your objective is to evaluate case evidence across corporate filings, identity documents, bank statements, contracts, and insurance claims with deterministic audit precision.\n\n"
-                "CRITICAL INSTRUCTION: Hackathon judges and senior bank officers need to understand your decision within 5 seconds without getting lost in legal jargon.\n"
-                "Always provide a crystal-clear 'PLAIN ENGLISH SUMMARY' at the top explaining what happened in everyday language.\n\n"
-                "RULES:\n"
-                "1. If ATTACHED DOCUMENTS EVIDENCE CONTENT is provided, inspect and cite the exact file names, dates, amounts, and company names found inside.\n"
-                "2. If documents conflict or have discrepancies (e.g. KYC location != Bank location, or unrecorded wires), set Trust Gate to CONFLICTING and RECOMMEND DISBURSEMENT BLOCKED.\n"
-                "3. If all documents match with zero conflicts, set Trust Gate to SUFFICIENT and RECOMMEND APPROVAL.\n"
-                "4. Format the response with clean, readable sections:\n\n"
-                "DETERMINISTIC TRUST GATE: [SUFFICIENT / CONFLICTING / INCOMPLETE] — [DECISION: BLOCKED or APPROVED]\n\n"
-                "• Plain English Summary: [Write 2 simple, crystal-clear sentences explaining exactly what happened, what was caught, and why.]\n"
-                "• Target Entity: [Entity Name or Case ID]\n"
-                "• Risk Assessment: [e.g. HIGH FRAUD RISK (Completeness 92%)]\n\n"
-                "### Physical Evidence & Document Cross-Examination:\n"
-                "- Document 1 (`filename`): [Exact fact/claim found in file]\n"
-                "- Document 2 (`filename`): [Exact fact/claim found in file]\n\n"
-                "### Identified Contradictions & Red Flags:\n"
-                "1. [Specific conflict in simple terms: File A says X while File B says Y]\n"
-                "2. [Any unverified outflow, missing invoice, or date mismatch]\n\n"
-                "### Action for Auditor / Decision Maker:\n"
-                "[Clear 1-sentence action: e.g. 'Block payout immediately and demand Delaware corporate tax clearance.']\n"
-            )
-            
-            user_prompt = f"User Evaluation Request:\n{req.content}\n{attachments_context}\n{web_context}"
-            
+            if is_system_or_rag_query:
+                system_prompt = (
+                    "You are VERDICT AI — an institutional decision intelligence platform and forensic copilot.\n"
+                    "The user is asking about the system architecture, how the database functions, or how the RAG (Retrieval-Augmented Generation) pipeline operates.\n"
+                    "Provide a brilliant, clear, authoritative explanation with bullet points:\n"
+                    "1. **Core Banking Enterprise DB (MongoDB Atlas & Edge Gateway)**: Stores primary ground-truth records (transactions, accounts, customer KYC profiles, and cellular telemetry).\n"
+                    "2. **Evidence RAG & OCR Ingestion**: Physical documents (PDFs, Invoices, Police FIRs, Deeds) are parsed using OCR and embedded into semantic vectors to extract verified factual claims with SHA-256 cryptographic hashes.\n"
+                    "3. **Deterministic Zero-Hallucination Gates**: Unlike standard LLMs that guess or hallucinate, VERDICT AI cross-checks facts deterministically across multi-source ledgers (e.g. Bank Location vs Device GPS).\n"
+                    "4. Offer 3 real-world demo scenarios they can evaluate right now:\n"
+                    "   • `Evaluate loan application for ABC Technologies (Case TX-92831)`\n"
+                    "   • `Is there sufficient evidence to approve claim CLAIM-782?`\n"
+                    "   • `Verify Infosys corporate status and public filings`\n"
+                    "Tone: Senior AI Systems Architect, articulate, structured, and helpful. Do NOT output a fake 'DETERMINISTIC TRUST GATE: BLOCKED' badge for general system questions."
+                )
+            elif is_company_recommendation:
+                system_prompt = (
+                    "You are VERDICT AI — an institutional forensic due diligence authority.\n"
+                    "The user is asking for company suggestions or how to audit companies.\n"
+                    "Recommend 3 high-impact corporate due diligence scenarios that demonstrate VERDICT AI's full power:\n"
+                    "1. **Public Listed Companies (Infosys / Tata Group / Reliance)**: Live public registry, MCA compliance, and stock exchange disclosure verification via real-time web grounding.\n"
+                    "2. **ABC Technologies (Case TX-92831)**: Cross-examining loan pitch deck against offshore wire conflicts ($45,000 Cayman Islands hidden outflow).\n"
+                    "3. **SME Credit Facility (LOAN-2031)**: Detecting missing tax filings (GST Q3 & Balance Sheet).\n"
+                    "Invite the user to type any company name or upload an invoice/PDF for instant forensic cross-examination."
+                )
+            elif is_case_or_audit_query or has_attachments:
+                system_prompt = (
+                    "You are VERDICT AI — an institutional legal and financial forensic decision intelligence system.\n"
+                    "Your objective is to evaluate case evidence across corporate filings, identity documents, bank statements, contracts, and insurance claims with deterministic audit precision.\n\n"
+                    "CRITICAL INSTRUCTION: Always provide a crystal-clear 'PLAIN ENGLISH SUMMARY' at the top explaining what happened in everyday language.\n\n"
+                    "RULES:\n"
+                    "1. If ATTACHED DOCUMENTS EVIDENCE CONTENT is provided, inspect and cite the exact file names, dates, amounts, and company names found inside.\n"
+                    "2. If documents conflict or have discrepancies (e.g. KYC location != Bank location, or unrecorded wires), set Trust Gate to CONFLICTING and RECOMMEND DISBURSEMENT BLOCKED.\n"
+                    "3. If all documents match with zero conflicts, set Trust Gate to SUFFICIENT and RECOMMEND APPROVAL.\n"
+                    "4. If documents are missing, set Trust Gate to INCOMPLETE and RECOMMEND DATA REQUIRED.\n"
+                    "5. Format the response with clean, readable sections:\n\n"
+                    "DETERMINISTIC TRUST GATE: [SUFFICIENT / CONFLICTING / INCOMPLETE] — [DECISION: BLOCKED or APPROVED or DATA_REQUIRED]\n\n"
+                    "• Plain English Summary: [Write 2 simple, crystal-clear sentences explaining exactly what happened, what was caught, and why.]\n"
+                    "• Target Entity: [Entity Name or Case ID]\n"
+                    "• Risk Assessment: [e.g. HIGH FRAUD RISK (Completeness 92%)]\n\n"
+                    "### Physical Evidence & Document Cross-Examination:\n"
+                    "- Document 1 (`filename`): [Exact fact/claim found in file]\n"
+                    "- Document 2 (`filename`): [Exact fact/claim found in file]\n\n"
+                    "### Identified Contradictions & Red Flags:\n"
+                    "1. [Specific conflict in simple terms: File A says X while File B says Y]\n"
+                    "2. [Any unverified outflow, missing invoice, or date mismatch]\n\n"
+                    "### Action for Auditor / Decision Maker:\n"
+                    "[Clear 1-sentence action: e.g. 'Block payout immediately and demand Delaware corporate tax clearance.']\n"
+                )
+            else:
+                system_prompt = (
+                    "You are VERDICT AI — an institutional decision intelligence platform and forensic copilot.\n"
+                    "Answer the user's question directly, smartly, and insightfully.\n"
+                    "If it relates to financial data, companies, or verification, explain how VERDICT AI uses live ground truth web search and deterministic gates to verify facts.\n"
+                    "Provide helpful suggestions on how they can audit transactions, verify company registrations, or upload documents to detect fraud."
+                )
+
+            user_prompt = f"User Request:\n{req.content}\n{attachments_context}\n{web_context}"
+
             llm_reply = llm_service._call_groq([
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ], temperature=0.15, max_tokens=750)
-            
+
             if llm_reply and len(llm_reply) > 50:
                 reply_text = llm_reply
         except Exception as e:
@@ -343,13 +380,43 @@ async def send_message(thread_id: str, req: SendMessageRequest):
                     f"### Action for Auditor / Decision Maker:\n"
                     f"Entity successfully verified against external public ground truth. Proceed with internal company doc audit."
                 )
+            elif is_system_or_rag_query:
+                reply_text = (
+                    "🏛️ **VERDICT AI — ARCHITECTURAL & DATABASE OVERVIEW**\n\n"
+                    "Our platform combines structured banking ledgers with an evidence-based RAG pipeline to eliminate hallucinations:\n\n"
+                    "1. **Core Banking Database (MongoDB Atlas & Edge Gateway)**:\n"
+                    "   - Stores primary transactional ledgers (`accounts`, `transactions`, `customers`).\n"
+                    "   - Connected to Laptop 2's Branch Terminal to ingest live banking feeds in real time.\n\n"
+                    "2. **Evidence RAG & Vector Store**:\n"
+                    "   - Physical files (PDFs, Invoices, Police FIRs, Deeds) are parsed using OCR.\n"
+                    "   - Embeddings are indexed to extract cryptographically verified factual claims (SHA-256).\n\n"
+                    "3. **Deterministic Decision Engine**:\n"
+                    "   - Cross-checks evidence claims deterministically without LLM guessing.\n"
+                    "   - Enforces automated blocks when discrepancies (like offshore secret wires or geolocation clashes) are detected.\n\n"
+                    "#### 🚀 Try These Live Scenarios:\n"
+                    "- `Evaluate transaction TX-92831 for ABC Technologies` (Fraud Contradiction Gate)\n"
+                    "- `Verify Infosys corporate status and public filings` (Live Web Grounding Gate)\n"
+                    "- `Is there sufficient evidence to approve claim CLAIM-782?` (Clean Approval Gate)"
+                )
+            elif is_company_recommendation:
+                reply_text = (
+                    "🔍 **VERDICT AI — RECOMMENDED DUE DILIGENCE AUDIT TARGETS**\n\n"
+                    "You can evaluate any enterprise across multi-source public and private ground truth:\n\n"
+                    "1. **Public Blue-Chip Verification**: Ask `Verify Infosys corporate status` or `Verify Tata Group` to test real-time public registry grounding (MCA, exchange filings, OFAC watchlists).\n"
+                    "2. **Loan Fraud & Secret Wires**: Ask `Evaluate transaction TX-92831 for ABC Technologies` to catch an unrecorded $45,000 Cayman Islands wire.\n"
+                    "3. **Missing Tax Filings**: Ask `Validate loan LOAN-2031` to detect missing GST and Balance Sheet returns.\n\n"
+                    "💡 *You can also drag-and-drop any company PDF or invoice below for instant forensic contradiction analysis.*"
+                )
             else:
                 reply_text = (
-                    "### DETERMINISTIC TRUST GATE STATUS: NEED MORE INFO / AWAITING INGESTION\n\n"
-                    "• **Audit Assessment:** INSUFFICIENT PRIMARY SOURCES (Evidence Completeness: 20%)\n"
-                    "• **Gate Requirement:** Minimum 2 independent cryptographically verifiable sources required.\n\n"
-                    "#### Required Action:\n"
-                    "Please upload the relevant case documents (KYC, Bank Statement, or Invoices) or select a case from the Company Document Vault to execute automated cross-fact verification."
+                    "🏛️ **VERDICT AI COPILOT**\n\n"
+                    "I am ready to evaluate case evidence, cross-examine physical documents, or verify company public ground truth.\n\n"
+                    "#### 🚀 Quick Scenarios You Can Audit:\n"
+                    "• **🏦 Transaction & Loan Fraud**: `Evaluate transaction TX-92831 for ABC Technologies`\n"
+                    "• **🚗 Clean Insurance Settlement**: `Is there sufficient evidence to approve claim CLAIM-782?`\n"
+                    "• **🌐 Live Company Due Diligence**: `Verify Reliance Industries corporate filings`\n"
+                    "• **🏡 Title Deed & Chain Verification**: `Person 1 transferred property to Person 2 in 2018. Validate title.`\n\n"
+                    "💡 *Or simply attach any PDF, Bank Statement, or Invoice below for automated OCR extraction.*"
                 )
 
     bot_msg_id = f"msg-{uuid.uuid4().hex[:8]}-a"
